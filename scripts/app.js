@@ -1,24 +1,13 @@
 /* ============================================================
    COMP-6062 Final Project – app.js
-   Vue 3 Application (Global CDN build)
    ============================================================ */
 
 const { createApp } = Vue;
-
-/* ── API base URLs ── */
 const BASE        = '';
 const USER_URL    = `${BASE}/random-user-data`;
 const WEATHER_URL = `${BASE}/weather-data`;
 const DICT_URL    = `${BASE}/api/define`;
-
-/* ── Fallback public APIs (used when course server is unavailable) ── */
 const FB_USER = 'https://randomuser.me/api/?results=1';
-
-/* ── Helpers ── */
-
-/**
- * Safely fetch JSON. Returns { data, ok }.
- */
 async function safeGet(url) {
   try {
     const res = await fetch(url);
@@ -30,16 +19,6 @@ async function safeGet(url) {
   }
 }
 
-/**
- * Normalise user profile from either the course API or randomuser.me.
- *
- * Course API may return:
- *   { firstName, lastName, age, avatar }        (camelCase)
- *   { first_name, last_name, age, picture }     (snake_case)
- *
- * randomuser.me returns:
- *   { results: [{ name:{first,last}, dob:{age}, picture:{large} }] }
- */
 function normaliseUser(raw) {
   if (!raw) return null;
 
@@ -54,7 +33,7 @@ function normaliseUser(raw) {
     };
   }
 
-  // Course API
+
   return {
     firstName: raw.firstName ?? raw.first_name ?? raw.name?.first ?? 'Unknown',
     lastName:  raw.lastName  ?? raw.last_name  ?? raw.name?.last  ?? '',
@@ -63,15 +42,7 @@ function normaliseUser(raw) {
   };
 }
 
-/**
- * Normalise weather from either the course API or wttr.in (format=j1).
- *
- * Course API expected shape:
- *   { temperature, wind, description }
- *
- * wttr.in j1 shape:
- *   { current_condition: [{ temp_C, temp_F, windspeedKmph, weatherDesc:[{value}] }] }
- */
+
 function normaliseWeather(raw) {
   if (!raw) return null;
 
@@ -85,7 +56,6 @@ function normaliseWeather(raw) {
     };
   }
 
-  // Course API (various possible field names)
   return {
     temperature: raw.temperature ?? raw.temp ?? raw.temp_c ?? raw.Temperature ?? '?',
     wind:        raw.wind        ?? raw.windSpeed ?? raw.wind_speed ?? raw.Wind ?? '?',
@@ -93,15 +63,6 @@ function normaliseWeather(raw) {
   };
 }
 
-/**
- * Normalise dictionary entry from course API or dictionaryapi.dev.
- *
- * Course API flat shape:
- *   { word, phonetic, definition }
- *
- * dictionaryapi.dev returns an array:
- *   [{ word, phonetic, meanings:[{ definitions:[{definition}] }] }]
- */
 function normaliseDefinition(raw) {
   if (!raw) return null;
 
@@ -115,15 +76,13 @@ function normaliseDefinition(raw) {
     };
   }
 
-  // Course API flat shape
+ 
   return {
     word:       raw.word       ?? raw.term  ?? '?',
     phonetic:   raw.phonetic   ?? raw.pronunciation ?? '',
     definition: raw.definition ?? raw.meaning ?? raw.definitions?.[0] ?? 'No definition found.',
   };
 }
-
-/* ============================================================ */
 
 createApp({
 
@@ -172,10 +131,10 @@ createApp({
       this.userError   = '';
       this.user        = null;
 
-      // 1st: try the course API
+      
       let result = await safeGet(USER_URL);
 
-      // 2nd: fallback to randomuser.me
+     
       if (!result.ok || !result.data) {
         result = await safeGet(FB_USER);
       }
@@ -201,7 +160,7 @@ createApp({
       this.weatherError   = '';
       this.weather        = null;
 
-      // 1st: try the course API
+   
       const params = new URLSearchParams({
         city:     this.weatherCity,
         province: this.weatherProvince,
@@ -209,7 +168,7 @@ createApp({
       });
       let result = await safeGet(`${WEATHER_URL}?${params}`);
 
-      // 2nd: fallback to wttr.in (free, no key needed)
+      
       if (!result.ok || !result.data) {
         const loc = encodeURIComponent(
           [this.weatherCity, this.weatherProvince, this.weatherCountry]
@@ -243,7 +202,7 @@ createApp({
       // 1st: try the course API
       let result = await safeGet(`${DICT_URL}?word=${encodeURIComponent(word)}`);
 
-      // 2nd: fallback to dictionaryapi.dev (free, no key needed)
+      
       if (!result.ok || !result.data) {
         result = await safeGet(
           `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`

@@ -1,5 +1,6 @@
 /* ============================================================
    COMP-6062 Final Project – app.js
+   Vue 3 Application (Global CDN build)
    ============================================================ */
 
 const { createApp } = Vue;
@@ -55,7 +56,10 @@ async function safeGet(url) {
   }
 }
 
-
+/**
+ * Find the index in the hourly time array closest to right now.
+ * Open-Meteo times are ISO strings like "2024-04-07T14:00".
+ */
 function getCurrentHourIndex(times) {
   const now = new Date();
   let closest = 0;
@@ -110,7 +114,7 @@ createApp({
   /* ── Methods ── */
   methods: {
 
-    /* ─── Random User Profile ─── */
+    /* ─── 1. Random User Profile ─── */
     async fetchUser() {
       this.userLoading = true;
       this.userError   = '';
@@ -133,7 +137,7 @@ createApp({
       this.userLoading = false;
     },
 
-    
+    /* ─── 2 & 3. Weather (Geocode → Open-Meteo) ─── */
     async fetchWeather() {
       if (!this.weatherCity || !this.weatherCountry) {
         this.weatherError = 'Please enter at least a city and country.';
@@ -144,7 +148,7 @@ createApp({
       this.weatherError   = '';
       this.weather        = null;
 
-     
+      /* Step 1 – Geocode with Nominatim */
       const q = [this.weatherCity, this.weatherProvince, this.weatherCountry]
         .filter(Boolean).join('+');
 
@@ -160,7 +164,7 @@ createApp({
 
       const { lat, lon } = geoResult.data[0];
 
-      /*  Fetch weather from Open-Meteo */
+      /* Step 2 – Fetch weather from Open-Meteo */
       const weatherResult = await safeGet(
         `${WEATHER_URL}?latitude=${lat}&longitude=${lon}` +
         `&hourly=temperature_2m,weather_code,wind_speed_10m` +
@@ -187,7 +191,7 @@ createApp({
       this.weatherLoading = false;
     },
 
-    /* ─── Dictionary ─── */
+    /* ─── 4. Dictionary ─── */
     async fetchDefinition() {
       const word = this.dictWord.trim();
       if (!word) {

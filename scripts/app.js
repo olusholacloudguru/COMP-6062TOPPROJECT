@@ -1,5 +1,6 @@
 /* ============================================================
    COMP-6062 Final Project – app.js
+   Vue 3 Application (Global CDN build)
    ============================================================ */
 
 const { createApp } = Vue;
@@ -46,48 +47,31 @@ const WMO_CODES = {
 
 async function safeGet(url) {
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      return { ok: false, data: null };
-    }
-    const data = await response.json();
-    return { ok: true, data };
-  } catch (error) {
-    return { ok: false, data: null };
+    const res = await fetch(url);
+    if (!res.ok) return { data: null, ok: false };
+    const data = await res.json();
+    return { data, ok: true };
+  } catch (e) {
+    return { data: null, ok: false };
   }
 }
 
+/**
+ * Find the index in the hourly time array closest to right now.
+ * Open-Meteo times are ISO strings like "2024-04-07T14:00".
+ */
 function getCurrentHourIndex(times) {
   const now = new Date();
-  const currentTime = now.toISOString().slice(0, 13); // YYYY-MM-DDTHH
-  for (let i = 0; i < times.length; i++) {
-    if (times[i].startsWith(currentTime)) {
-      return i;
-    }
-  }
-  return 0;
+  let closest = 0;
+  let minDiff = Infinity;
+  times.forEach((t, i) => {
+    const diff = Math.abs(new Date(t) - now);
+    if (diff < minDiff) { minDiff = diff; closest = i; }
+  });
+  return closest;
 }
 
-function normaliseDefinition(raw) {
-  if (!raw) return null;
-
-  // dictionaryapi.dev returns an array
-  if (Array.isArray(raw)) {
-    const entry = raw[0];
-    return {
-      word:       entry.word ?? '?',
-      phonetic:   entry.phonetic ?? entry.phonetics?.[0]?.text ?? '',
-      definition: entry.meanings?.[0]?.definitions?.[0]?.definition ?? 'No definition found.',
-    };
-  }
-
- 
-  return {
-    word:       raw.word       ?? raw.term  ?? '?',
-    phonetic:   raw.phonetic   ?? raw.pronunciation ?? '',
-    definition: raw.definition ?? raw.meaning ?? raw.definitions?.[0] ?? 'No definition found.',
-  };
-}
+/* ============================================================ */
 
 createApp({
 
@@ -130,7 +114,7 @@ createApp({
   /* ── Methods ── */
   methods: {
 
-    /* ─── Random User Profile ─── */
+    /* ─── 1. Random User Profile ─── */
     async fetchUser() {
       this.userLoading = true;
       this.userError   = '';
@@ -153,7 +137,7 @@ createApp({
       this.userLoading = false;
     },
 
-    
+    /* ─── 2 & 3. Weather (Geocode → Open-Meteo) ─── */
     async fetchWeather() {
       if (!this.weatherCity || !this.weatherCountry) {
         this.weatherError = 'Please enter at least a city and country.';
@@ -164,6 +148,7 @@ createApp({
       this.weatherError   = '';
       this.weather        = null;
 
+      /* Step 1 – Geocode with Nominatim */
       const q = [this.weatherCity, this.weatherProvince, this.weatherCountry]
         .filter(Boolean).join('+');
 
@@ -179,7 +164,7 @@ createApp({
 
       const { lat, lon } = geoResult.data[0];
 
-      /*  Fetch weather from Open-Meteo */
+      /* Step 2 – Fetch weather from Open-Meteo */
       const weatherResult = await safeGet(
         `${WEATHER_URL}?latitude=${lat}&longitude=${lon}` +
         `&hourly=temperature_2m,weather_code,wind_speed_10m` +
@@ -193,44 +178,52 @@ createApp({
       }
 
       const hourly = weatherResult.data.hourly;
-      const idx = getCurrentHourIndex(hourly.time);
+      const idx    = getCurrentHourIndex(hourly.time);
 
       const code = hourly.weather_code[idx];
 
       this.weather = {
         temperature: `${hourly.temperature_2m[idx]}°C`,
-        wind: `${hourly.wind_speed_10m[idx]} km/h`,
+        wind:        `${hourly.wind_speed_10m[idx]} km/h`,
         description: WMO_CODES[code] ?? `Weather code ${code}`,
       };
 
       this.weatherLoading = false;
     },
-/* ─── Dictionary ─── */
-async fetchDefinition() {
-  const word = this.dictWord.trim();
-  if (!word) {
-    this.dictError = 'Please enter a word to define.';
-    return;
-  }
 
-  this.dictLoading  = true;
-  this.dictError    = '';
-  this.definition   = null;
+    /* ─── 4. Dictionary ─── */
+    async fetchDefinition() {
+      const word = this.dictWord.trim();
+      if (!word) {
+        this.dictError = 'Please enter a word to define.';
+        return;
+      }
 
-  const result = await safeGet(`${DICT_URL}/${encodeURIComponent(word)}`);
+      this.dictLoading  = true;
+      this.dictError    = '';
+      this.definition   = null;
 
-  if (result.ok && Array.isArray(result.data) && result.data.length) {
-    const entry = result.data[0];
-    this.definition = {
-      word:       entry.word ?? word,
-      phonetic:   entry.phonetic ?? entry.phonetics?.find(p => p.text)?.text ?? '',
-      definition: entry.meanings?.[0]?.definitions?.[0]?.definition ?? 'No definition found.',
-    };
-  } else {
-    this.dictError = `No definition found for "${word}".`;
-  }
+      const result = await safeGet(`${DICT_URL}/${encodeURIComponent(word)}`);
 
-  this.dictLoading = false;
-},
+      if (result.ok && Array.isArray(result.data) && result.data.length) {
+        const entry = result.data[0];
+        this.definition = {
+          word:       entry.word ?? word,
+          phonetic:   entry.phonetic ?? entry.phonetics?.find(p => p.text)?.text ?? '',
+          definition: entry.meanings?.[0]?.definitions?.[0]?.definition ?? 'No definition found.',
+        };
+      } else {
+        this.dictError = `No definition found for "${word}".`;
+      }
+
+      this.dictLoading = false;
+    },
+  },
+
+  /* ── Lifecycle ── */
+  mounted() {
+    this.fetchUser();    // Auto-load a random profile on page load
+    this.fetchWeather(); // Auto-load London, Ontario, Canada weather on page load
+  },
 
 }).mount('#app');

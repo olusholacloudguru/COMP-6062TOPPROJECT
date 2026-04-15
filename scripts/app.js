@@ -232,3 +232,5 @@ async fetchDefinition() {
 
   this.dictLoading = false;
 },
+
+}).mount('#app');

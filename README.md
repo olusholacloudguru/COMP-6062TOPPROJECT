@@ -60,10 +60,9 @@ COMP-6062TOPPROJECT/
 ## API Usage
 
 The application makes requests to the following APIs:
-- Random User API: No API key required
-- Nominatim: No API key required (respect rate limits)
-- Open-Meteo: No API key required
-- Free Dictionary API: No API key required
+- Random User API
+- Weather API
+- Free Dictionary API
 
 ## Browser Compatibility
 

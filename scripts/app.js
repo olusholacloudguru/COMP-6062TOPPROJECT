@@ -8,7 +8,7 @@ const { createApp } = Vue;
 /* ── API URLs ── */
 const USER_URL      = 'https://randomuser.me/api/';
 
-const WEATHER_BASE = 'https://wttr.in'; // wttr.in: free, no key, accepts city name directly
+const WEATHER_BASE = 'https://wttr.in'; // 
 const DICT_URL      = 'https://api.dictionaryapi.dev/api/v2/entries/en';
 
 /* ── WMO Weather Code → Description map ── */

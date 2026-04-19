@@ -1,6 +1,6 @@
 /* ============================================================
    COMP-6062 Final Project – app.js
-   Vue 3 Application (Global CDN build)
+ 
    ============================================================ */
 
 const { createApp } = Vue;
@@ -11,7 +11,7 @@ const GEOCODE_URL   = 'https://nominatim.openstreetmap.org/search';
 const WEATHER_URL   = 'https://api.open-meteo.com/v1/forecast';
 const DICT_URL      = 'https://api.dictionaryapi.dev/api/v2/entries/en';
 
-/* ── WMO Weather Code → Description map ── */
+/* ──  Weather→ Description map ── */
 const WMO_CODES = {
   0:  'Clear Sky',
   1:  'Mainly Clear',
@@ -56,10 +56,7 @@ async function safeGet(url) {
   }
 }
 
-/**
- * Find the index in the hourly time array closest to right now.
- * Open-Meteo times are ISO strings like "2024-04-07T14:00".
- */
+
 function getCurrentHourIndex(times) {
   const now = new Date();
   let closest = 0;
@@ -148,7 +145,7 @@ createApp({
       this.weatherError   = '';
       this.weather        = null;
 
-      /* Step 1 – Geocode with Nominatim */
+      /* Step 1 – Geocode */
       const q = [this.weatherCity, this.weatherProvince, this.weatherCountry]
         .filter(Boolean).join('+');
 

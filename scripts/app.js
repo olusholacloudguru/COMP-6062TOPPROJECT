@@ -7,7 +7,7 @@ const { createApp } = Vue;
 
 /* ── API URLs ── */
 const USER_URL      = 'https://randomuser.me/api/';
-const GEOCODE_URL   = 'https://nominatim.openstreetmap.org/search';
+const GEOCODE_URL   = 'https://geocoding-api.open-meteo.com/v1/search'; // replaced Nominatim
 const WEATHER_URL   = 'https://api.open-meteo.com/v1/forecast';
 const DICT_URL      = 'https://api.dictionaryapi.dev/api/v2/entries/en';
 
@@ -137,7 +137,7 @@ createApp({
       this.userLoading = false;
     },
 
-    /* ───  Weather─── */
+    /* ─── 2. Weather ─── */
     async fetchWeather() {
       if (!this.weatherCity || !this.weatherCountry) {
         this.weatherError = 'Please enter at least a city and country.';
@@ -148,25 +148,25 @@ createApp({
       this.weatherError   = '';
       this.weather        = null;
 
-      /* Step 1 – Geocode with Nominatim */
-      const q = [this.weatherCity, this.weatherProvince, this.weatherCountry]
-        .filter(Boolean).join('+');
+      /* Step 1 – Geocode with Open-Meteo geocoding API (replaces Nominatim) */
+      const searchName = [this.weatherCity, this.weatherProvince, this.weatherCountry]
+        .filter(Boolean).join(', ');
 
       const geoResult = await safeGet(
-        `${GEOCODE_URL}?addressdetails=1&q=${encodeURIComponent(q)}&format=jsonv2&limit=1`
+        `${GEOCODE_URL}?name=${encodeURIComponent(searchName)}&count=1&language=en&format=json`
       );
 
-      if (!geoResult.ok || !geoResult.data?.length) {
-        this.weatherError = `Could not find location: "${q}". Check spelling and try again.`;
+      if (!geoResult.ok || !geoResult.data?.results?.length) {
+        this.weatherError = `Could not find location: "${searchName}". Check spelling and try again.`;
         this.weatherLoading = false;
         return;
       }
 
-      const { lat, lon } = geoResult.data[0];
+      const { latitude, longitude } = geoResult.data.results[0];
 
       /* Step 2 – Fetch weather from Open-Meteo */
       const weatherResult = await safeGet(
-        `${WEATHER_URL}?latitude=${lat}&longitude=${lon}` +
+        `${WEATHER_URL}?latitude=${latitude}&longitude=${longitude}` +
         `&hourly=temperature_2m,weather_code,wind_speed_10m` +
         `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`
       );
@@ -179,8 +179,7 @@ createApp({
 
       const hourly = weatherResult.data.hourly;
       const idx    = getCurrentHourIndex(hourly.time);
-
-      const code = hourly.weather_code[idx];
+      const code   = hourly.weather_code[idx];
 
       this.weather = {
         temperature: `${hourly.temperature_2m[idx]}°C`,
@@ -191,7 +190,7 @@ createApp({
       this.weatherLoading = false;
     },
 
-    /* ─── 4. Dictionary ─── */
+    /* ─── 3. Dictionary ─── */
     async fetchDefinition() {
       const word = this.dictWord.trim();
       if (!word) {

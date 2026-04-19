@@ -1,6 +1,8 @@
 /* ============================================================
    COMP-6062 Final Project – Stylesheet
    ============================================================ */
+
+/* ---------- Design Tokens ---------- */
 :root {
   --bg:        #eee7e7;
   --surface:   #6e793c;
@@ -350,7 +352,9 @@ body {
   text-transform: uppercase;
 }
 
+/* ---------- Media Queries ---------- */
 
+/* Tablet: two-column layout adjustments */
 @media (max-width: 991.98px) {
   .module-card {
     padding: 1.5rem;
@@ -365,7 +369,7 @@ body {
   }
 }
 
-
+/* Mobile: stack everything, tighten spacing */
 @media (max-width: 575.98px) {
   .site-header {
     padding: 1rem 0;

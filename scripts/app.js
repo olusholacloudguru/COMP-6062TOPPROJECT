@@ -7,8 +7,8 @@ const { createApp } = Vue;
 
 /* ── API URLs ── */
 const USER_URL      = 'https://randomuser.me/api/';
-const GEOCODE_URL   = 'https://geocoding-api.open-meteo.com/v1/search'; // replaced Nominatim
-const WEATHER_URL   = 'https://api.open-meteo.com/v1/forecast';
+
+const WEATHER_BASE = 'https://wttr.in'; // wttr.in: free, no key, accepts city name directly
 const DICT_URL      = 'https://api.dictionaryapi.dev/api/v2/entries/en';
 
 /* ── WMO Weather Code → Description map ── */
@@ -137,7 +137,7 @@ createApp({
       this.userLoading = false;
     },
 
-    /* ─── 2. Weather ─── */
+    /* ───  Weather (wttr.in) ─── */
     async fetchWeather() {
       if (!this.weatherCity || !this.weatherCountry) {
         this.weatherError = 'Please enter at least a city and country.';
@@ -148,49 +148,27 @@ createApp({
       this.weatherError   = '';
       this.weather        = null;
 
-      /* Step 1 – Geocode with Open-Meteo geocoding API (replaces Nominatim) */
-      const searchName = [this.weatherCity, this.weatherProvince, this.weatherCountry]
-        .filter(Boolean).join(', ');
+      // Build location string and fetch from wttr.in in one step — no geocoding needed
+      const location = [this.weatherCity, this.weatherProvince, this.weatherCountry]
+        .filter(Boolean).join(',');
 
-      const geoResult = await safeGet(
-        `${GEOCODE_URL}?name=${encodeURIComponent(searchName)}&count=1&language=en&format=json`
-      );
+      const result = await safeGet(`${WEATHER_BASE}/${encodeURIComponent(location)}?format=j1`);
 
-      if (!geoResult.ok || !geoResult.data?.results?.length) {
-        this.weatherError = `Could not find location: "${searchName}". Check spelling and try again.`;
-        this.weatherLoading = false;
-        return;
+      if (result.ok && result.data?.current_condition?.[0]) {
+        const cond = result.data.current_condition[0];
+        this.weather = {
+          temperature: `${cond.temp_C}°C`,
+          wind:        `${cond.windspeedKmph} km/h`,
+          description: cond.weatherDesc?.[0]?.value ?? 'Unknown',
+        };
+      } else {
+        this.weatherError = 'Could not load weather data. Check the location and try again.';
       }
-
-      const { latitude, longitude } = geoResult.data.results[0];
-
-      /* Step 2 – Fetch weather from Open-Meteo */
-      const weatherResult = await safeGet(
-        `${WEATHER_URL}?latitude=${latitude}&longitude=${longitude}` +
-        `&hourly=temperature_2m,weather_code,wind_speed_10m` +
-        `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`
-      );
-
-      if (!weatherResult.ok || !weatherResult.data?.hourly) {
-        this.weatherError = 'Could not load weather data. Please try again.';
-        this.weatherLoading = false;
-        return;
-      }
-
-      const hourly = weatherResult.data.hourly;
-      const idx    = getCurrentHourIndex(hourly.time);
-      const code   = hourly.weather_code[idx];
-
-      this.weather = {
-        temperature: `${hourly.temperature_2m[idx]}°C`,
-        wind:        `${hourly.wind_speed_10m[idx]} km/h`,
-        description: WMO_CODES[code] ?? `Weather code ${code}`,
-      };
 
       this.weatherLoading = false;
     },
 
-    /* ─── 3. Dictionary ─── */
+    /* ─── 4. Dictionary ─── */
     async fetchDefinition() {
       const word = this.dictWord.trim();
       if (!word) {

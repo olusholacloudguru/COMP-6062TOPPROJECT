@@ -1,6 +1,5 @@
 /* ============================================================
    COMP-6062 Final Project – app.js
-   Vue 3 Application (Global CDN build)
    ============================================================ */
 
 const { createApp } = Vue;
@@ -11,7 +10,7 @@ const GEOCODE_URL   = 'https://nominatim.openstreetmap.org/search';
 const WEATHER_URL   = 'https://api.open-meteo.com/v1/forecast';
 const DICT_URL      = 'https://api.dictionaryapi.dev/api/v2/entries/en';
 
-/* ── WMO Weather Code → Description map ── */
+/* ── WMO Weather Code  ── */
 const WMO_CODES = {
   0:  'Clear Sky',
   1:  'Mainly Clear',
@@ -56,10 +55,7 @@ async function safeGet(url) {
   }
 }
 
-/**
- * Find the index in the hourly time array closest to right now.
- * Open-Meteo times are ISO strings like "2024-04-07T14:00".
- */
+
 function getCurrentHourIndex(times) {
   const now = new Date();
   let closest = 0;
@@ -114,7 +110,7 @@ createApp({
   /* ── Methods ── */
   methods: {
 
-    /* ─── 1. Random User Profile ─── */
+    
     async fetchUser() {
       this.userLoading = true;
       this.userError   = '';
@@ -137,7 +133,7 @@ createApp({
       this.userLoading = false;
     },
 
-    /* ─── 2 & 3. Weather (Geocode → Open-Meteo) ─── */
+    
     async fetchWeather() {
       if (!this.weatherCity || !this.weatherCountry) {
         this.weatherError = 'Please enter at least a city and country.';
@@ -164,7 +160,7 @@ createApp({
 
       const { lat, lon } = geoResult.data[0];
 
-      /* Step 2 – Fetch weather from Open-Meteo */
+      /* Fetch weather from Open-Meteo */
       const weatherResult = await safeGet(
         `${WEATHER_URL}?latitude=${lat}&longitude=${lon}` +
         `&hourly=temperature_2m,weather_code,wind_speed_10m` +
@@ -191,7 +187,7 @@ createApp({
       this.weatherLoading = false;
     },
 
-    /* ─── 4. Dictionary ─── */
+    /* ───  Dictionary ─── */
     async fetchDefinition() {
       const word = this.dictWord.trim();
       if (!word) {
